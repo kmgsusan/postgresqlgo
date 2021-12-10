@@ -3,7 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
-
+	"github.com/joho/sqltocsv"
 	_ "github.com/lib/pq"
 )
 
@@ -44,7 +44,17 @@ func main() {
 		case sql.ErrNoRows:
 			fmt.Println("No rows were returned")
 		case nil:
-			fmt.Printf("Data row = (%s)\n", nspname)
+			//fmt.Printf("Data row = (%s)\n", nspname)
+			fmt.Println("set search_path to " + nspname)
+			db.Exec("set search_path to " + nspname)
+			rows2, _ := db.Query("SELECT mall_id, current_Schema() as sn from mall ")
+			fmt.Println(rows2)
+			rows, _ := db.Query("select mall_id from mall")
+			fmt.Println(rows['mall_id'])
+			rows, err := db.Query("select * from mall")
+			CheckError(err)
+			csvConverter := sqltocsv.New(rows)
+			csvConverter.WriteFile("result_" + nspname + ".csv")
 		default:
 			checkError(err)
 		}
