@@ -4,28 +4,27 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/joho/sqltocsv"
 	_ "github.com/lib/pq"
 )
 
 const (
-	host     = "192.168.123.213"
-	port     = 9999
-	database = "mall"
-	username = "dba"
-	password = "@cafe24"
+	// Initialize connection constants.
+	HOST     = "192.168.123.213"
+	PORT     = 9999
+	DATABASE = "mall"
+	USER     = "dba"
+	PASSWORD = "@cafe24"
 )
 
 func checkError(err error) {
 	if err != nil {
-		panic(err)
+		panic(err.Error())
 	}
 }
 
 func main() {
 	// Initialize connection string.
-	var connectionString string = fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, username, password, database)
-	fmt.Println(connectionString)
+	var connectionString string = fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", HOST, PORT, USER, PASSWORD, DATABASE)
 
 	// Initialize connection object.
 	db, err := sql.Open("postgres", connectionString)
@@ -39,6 +38,7 @@ func main() {
 	rows, err := db.Query(sql_statement)
 	checkError(err)
 	defer rows.Close()
+	defer db.Close()
 
 	var nspname string
 	for rows.Next() {
@@ -46,17 +46,20 @@ func main() {
 		case sql.ErrNoRows:
 			fmt.Println("No rows were returned")
 		case nil:
-			//fmt.Printf("Data row = (%s)\n", nspname)
-			fmt.Println("set search_path to " + nspname)
+			// fmt.Printf("Data row = (%s)\n", nspname)
+			// fmt.Println("set search_path to " + nspname)
 			db.Exec("set search_path to " + nspname)
 			rows2, _ := db.Query("SELECT mall_id, current_Schema() as sn from mall ")
-			fmt.Println(rows2)
-			rows, _ := db.Query("select mall_id from mall")
+			rows2.Close()
+			// rows3, _ := db.Query("copy (select * from mall) to stdout delimiter '\t' ")
+			// rows3, _ := db.Query("select * from mall")
+			rows3, _ := db.Query(fmt.Sprintf("copy (select * from mall) to stdout(delimiter '|')"))
+			fmt.Println(rows3)
+			// csvConverter := sqltocsv.New(rows3)
+			// csvConverter.WriteFile("output/result_" + nspname + ".csv")
 			// fmt.Println(rows['mall_id'])
 			// rows, err := db.Query("select * from mall")
-			// CheckError(err)
-			csvConverter := sqltocsv.New(rows)
-			csvConverter.WriteFile("result_" + nspname + ".csv")
+			// csvConverter.WriteFile("result_" + nspname + ".csv")
 		default:
 			checkError(err)
 		}
